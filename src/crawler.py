@@ -1,10 +1,16 @@
 import os
+import re
+import asyncio
+import requests
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Any
 from dataclasses import dataclass, asdict
+from crawl4ai.models import CrawlResult
 from crawl4ai import AsyncWebCrawler, DefaultMarkdownGenerator, BrowserConfig, CrawlerRunConfig, MemoryAdaptiveDispatcher, CacheMode
 from crawl4ai.deep_crawling import BFSDeepCrawlStrategy
 from crawl4ai.content_filter_strategy import PruningContentFilter
+
+KNOWLEDGE_PATH = "knowledge_base"
 
 @dataclass
 class DocumentChunk:
@@ -61,7 +67,7 @@ def parse_sitemap(sitemap: str) -> List[str]:
     print(f"Extraction complete. Found {len(urls)} URLs in sitemap.")
     return urls
 
-async def crawl_sitemap(urls: List[str]) -> Dict[str, ]:
+async def crawl_sitemap(urls: List[str], docs_folder: str) -> Dict[str, CrawlResult]:
     """
     Asynchronously crawls a list of URLs and extracts their main content into Markdown.
 
@@ -94,10 +100,13 @@ async def crawl_sitemap(urls: List[str]) -> Dict[str, ]:
         max_session_permit=10
     )
 
+    docs_directory = os.path.join("..", KNOWLEDGE_PATH, docs_folder)
+
     async with AsyncWebCrawler() as crawler:
         print("Starting batch crawl with AsyncWebCrawler. This may take a while...")
         results = await crawler.arun_many(urls=urls, config=crawl_config, dispatcher=dispatcher)
         print("Batch crawl finished. Processing and saving results...")
+
         result_dict = dict()
         for result in results:
             if result.success:
@@ -105,13 +114,13 @@ async def crawl_sitemap(urls: List[str]) -> Dict[str, ]:
                 clean_title = re.sub(r'[\\/*?:"<>|]', " ", page_title)
                 clean_title = re.sub(r'[^\x00-\x7F]+', '', clean_title)
 
-                if not os.path.exists(DOC_DIR_NAME):
-                    os.makedirs(DOC_DIR_NAME)
+                if not os.path.exists(docs_directory):
+                    os.makedirs(docs_directory)
 
-                with open(f"{DOC_DIR_NAME}/{clean_title}.md", "w", encoding="utf-8") as f:
+                with open(f"{docs_directory}/{clean_title}.md", "w", encoding="utf-8") as f:
                     f.write(result.markdown.fit_markdown)
 
-                print(f"Successfully saved: {DOC_DIR_NAME}/{clean_title}.md")
+                print(f"Successfully saved: {docs_directory}\\{clean_title}.md")
                 result_dict[result.url] = result
 
             else:
