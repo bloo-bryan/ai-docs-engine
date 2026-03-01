@@ -1,41 +1,14 @@
 import os
 import re
-import asyncio
 import requests
 import xml.etree.ElementTree as ET
-from typing import Dict, List, Any
-from dataclasses import dataclass, asdict
+from typing import Dict, List
 from crawl4ai.models import CrawlResult
 from crawl4ai import AsyncWebCrawler, DefaultMarkdownGenerator, BrowserConfig, CrawlerRunConfig, MemoryAdaptiveDispatcher, CacheMode
 from crawl4ai.deep_crawling import BFSDeepCrawlStrategy
 from crawl4ai.content_filter_strategy import PruningContentFilter
 
 KNOWLEDGE_PATH = "knowledge_base"
-
-@dataclass
-class DocumentChunk:
-    """
-    Represents a chunk of documentation.
-
-    Attributes:
-        id (str): The unique identifier for the document chunk.
-        content (str): The raw text content of the chunk.
-        embedding_content (str): The text content formatted for generating embeddings.
-        metadata (Dict[str, Any]): Additional metadata associated with the document.
-    """
-    id: str
-    content: str
-    embedding_content: str
-    metadata: Dict[str, Any]
-
-    def to_dict(self):
-        """
-        Converts the DocumentChunk instance to a dictionary.
-
-        Returns:
-            Dict[str, Any]: A dictionary representation of the document chunk.
-        """
-        return asdict(self)
 
 def parse_sitemap(sitemap: str) -> List[str]:
     """
