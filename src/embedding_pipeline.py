@@ -168,7 +168,9 @@ async def process_results(results: Dict[str, CrawlResult]) -> Tuple[List[Documen
     all_explanation_chunks, all_code_chunks = [], []
     chunk_tasks = []
 
+    print(f"Processing {len(results)} overall crawl results...")
     for url, result in results.items():
+        print(f"Processing result for {url}...")
         # Define the headers to split on and their metadata keys
         headers = [
             ("#", "H1"),
@@ -194,6 +196,7 @@ async def process_results(results: Dict[str, CrawlResult]) -> Tuple[List[Documen
   
         # Execute all chunk creation tasks concurrently
         if chunk_tasks:
+            print(f"Executing {len(chunk_tasks)} concurrent LLM enrichment tasks for {url}...")
             gathered_results = await asyncio.gather(*chunk_tasks)
             for exp_chunks, code_chunks in gathered_results:
                 if exp_chunks:
@@ -201,7 +204,8 @@ async def process_results(results: Dict[str, CrawlResult]) -> Tuple[List[Documen
                 if code_chunks:
                     all_code_chunks.extend(code_chunks)
     
-        return all_explanation_chunks, all_code_chunks
+    print(f"Finished processing all results. Created {len(all_explanation_chunks)} explanation chunks and {len(all_code_chunks)} code chunks.")
+    return all_explanation_chunks, all_code_chunks
 
 def create_embeddings(texts: List[str], code: bool = False) -> Any:
     """
@@ -235,7 +239,10 @@ def initialize_chroma(collection_name: str) -> Any:
         settings=Settings(anonymized_telemetry=False)
     )
     if collection_name in [c.name for c in chroma.list_collections()]:
+        print(f"Collection '{collection_name}' already exists. Deleting it to recreate...")
         chroma.delete_collection(collection_name)
+    else:
+        print(f"Creating new collection '{collection_name}'...")
     collection = chroma.get_or_create_collection(
         name=collection_name,
         metadata={"hnsw:space": "cosine"}
@@ -254,6 +261,7 @@ def add_documents_to_chroma(chunks: List[DocumentChunk], db_name: str, code: boo
     Returns:
         Any: The ChromaDB collection object with the added documents.
     """
+    print(f"Adding {len(chunks)} documents to ChromaDB collection: '{db_name}'...")
     collection = initialize_chroma(db_name)
     original, texts, metas, ids = [], [], [], []
     for chunk in chunks:
